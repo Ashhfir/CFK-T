@@ -1,6 +1,5 @@
 import java.awt.Graphics;
 import java.awt.Graphics2D;
-import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.Color;
 
@@ -8,7 +7,7 @@ public class Ship
 {
     int x;
     int y;
-    int speed = 5;
+    int speed = 12;
     int direction = 90;
 
     public Ship()
@@ -29,28 +28,32 @@ public class Ship
         g2.rotate(Math.toRadians(direction), x, y);
     }
 
-    public void move(int direction)
+    public void move(boolean leftPressed, boolean rightPressed, boolean upPressed, boolean downPressed)
     {
-        switch (direction)
+        if (leftPressed)
         {
-            case KeyEvent.VK_UP: // Up
-                y -= 10;
-                break;
-            case KeyEvent.VK_DOWN: // Down
-                y += 10;
-                break;
-            case KeyEvent.VK_LEFT: // Left
-                x -= 10;
-                break;
-            case KeyEvent.VK_RIGHT: // Right
-                x += 10;
-                break;
+            x -= speed;
         }
 
-        // x += speed*(int)Math.cos(Math.toRadians(direction));
-        // y += speed*(int)Math.sin(Math.toRadians(direction));
-        
-        System.out.println("Ship moved");
+        if (rightPressed)
+        {
+            x += speed;
+        }
+
+        if (upPressed)
+        {
+            y -= speed;
+        }
+
+        if (downPressed)
+        {
+            y += speed;
+        }
+    }
+
+    public void accelerate()
+    {
+        speed += 3;
     }
 
     public void followMouse(MouseEvent mouse)
@@ -58,6 +61,5 @@ public class Ship
         int dx = mouse.getX() - x;
         int dy = mouse.getY() - y;
         direction = (int)Math.toDegrees(Math.atan2(dy, dx));
-        // move(direction);
     }
 }
