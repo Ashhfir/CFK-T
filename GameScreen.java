@@ -1,12 +1,15 @@
 import javax.swing.JFrame;
 import javax.swing.JPanel;
+
 import java.awt.event.KeyListener;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionListener;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.event.KeyEvent;
 
-public class GameScreen extends JPanel implements KeyListener
+public class GameScreen extends JPanel implements KeyListener, MouseMotionListener
 {
     Ship ship; // used in multiple methods, so it is declared here
 
@@ -29,6 +32,7 @@ public class GameScreen extends JPanel implements KeyListener
         setFocusable(true);
         requestFocus();
         addKeyListener(this);
+        addMouseMotionListener(this);
     }
 
     @Override
@@ -41,61 +45,28 @@ public class GameScreen extends JPanel implements KeyListener
     @Override
     public void keyPressed(KeyEvent e)
     {
-        if (e.getKeyCode() == KeyEvent.VK_UP)
-        {
-            ship.move("up"); // Move up
-            repaint();
-            System.out.println("Up arrow pressed");
-        }
-        else if (e.getKeyCode() == KeyEvent.VK_DOWN)
-        {
-            ship.move("down"); // Move down
-            repaint();
-            System.out.println("Down arrow pressed");
-        }
-        else if (e.getKeyCode() == KeyEvent.VK_LEFT)
-        {
-            ship.move("left"); // Move left
-            repaint();
-            System.out.println("Left arrow pressed");
-        }
-        else if (e.getKeyCode() == KeyEvent.VK_RIGHT)
-        {
-            ship.move("right"); // Move right
-            repaint();
-            System.out.println("Right arrow pressed");
-        }
-
-        switch (e.getKeyCode())
-        {
-            case KeyEvent.VK_UP:
-                ship.move("up");
-                repaint();
-                break;
-            case KeyEvent.VK_DOWN:
-                ship.move("down");
-                repaint();
-                break;
-            case KeyEvent.VK_LEFT:
-                ship.move("left");
-                repaint();
-                break;
-            case KeyEvent.VK_RIGHT:
-                ship.move("right");
-                repaint();
-                break;
-        }
+        ship.move(e.getKeyCode());
+        repaint();
     }
 
-    // @Override
+    @Override
     public void keyReleased(KeyEvent e) {}
 
-    // @Override
+    @Override
     public void keyTyped(KeyEvent e) {}
     
     public static void main(String[] args)
     {
         new GameScreen();
         System.out.println("Test");
+    }
+
+    @Override
+    public void mouseDragged(MouseEvent e) {}
+
+    @Override
+    public void mouseMoved(MouseEvent e) {
+        ship.followMouse(e);
+        repaint();
     }
 }
