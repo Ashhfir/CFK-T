@@ -1,21 +1,24 @@
 import javax.swing.JFrame;
 import javax.swing.JPanel;
-
 import javax.swing.Timer;
 
-import java.awt.event.KeyListener;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseMotionListener;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
-import java.awt.Rectangle;
 import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
-public class GameScreen extends JPanel implements KeyListener, MouseMotionListener
+public class GameScreen extends JPanel implements KeyListener, MouseMotionListener, MouseListener
 {
-    private Ship ship; // used in multiple methods, so it is declared here
+    private Ship ship;
+    private final List<Laserbeam> lasers = new ArrayList<>();
     private Asteroid[] asteroid;
     private Timer movementTimer;
 
@@ -28,7 +31,7 @@ public class GameScreen extends JPanel implements KeyListener, MouseMotionListen
         super();
         setBackground(Color.BLACK);
         setPreferredSize(new Dimension(900, 900));
-        
+
         ship = new Ship();
         asteroid = new Asteroid[10];
         for (int i = 0; i < asteroid.length; i++)
@@ -47,25 +50,39 @@ public class GameScreen extends JPanel implements KeyListener, MouseMotionListen
         requestFocusInWindow();
         addKeyListener(this);
         addMouseMotionListener(this);
+        addMouseListener(this);
 
-        movementTimer = new Timer(16, (event) -> {
-            moveStuff();
-        });
+        movementTimer = new Timer(16, (event) -> moveStuff());
         movementTimer.start();
     }
 
     public void moveStuff()
     {
         ship.move(leftPressed, rightPressed, upPressed, downPressed);
+
+        Iterator<Laserbeam> laserIterator = lasers.iterator();
+        while (laserIterator.hasNext())
+        {
+            Laserbeam laser = laserIterator.next();
+            laser.move();
+            if (laser.isOffScreen(getWidth(), getHeight()))
+            {
+                laserIterator.remove();
+            }
+        }
+
         for (Asteroid a : asteroid)
         {
-            a.move();
+            if (a != null)
+            {
+                a.move();
+            }
         }
+        handleLaserAsteroidCollisions();
         handleAsteroidCollisions();
         repaint();
         if (collidedWith(ship))
         {
-            // System.out.println("Collision detected!");
             resetGame();
         }
     }
@@ -73,12 +90,26 @@ public class GameScreen extends JPanel implements KeyListener, MouseMotionListen
     @Override
     public void paintComponent(Graphics g)
     {
-        super.paintComponent(g); // clear background
+        super.paintComponent(g);
+        for (Laserbeam laser : lasers)
+        {
+            laser.paint(g);
+        }
         ship.paint(g);
         for (Asteroid a : asteroid)
         {
-            a.paint(g);
+            if (a != null)
+            {
+                a.paint(g);
+            }
         }
+    }
+
+    private void fireLaser()
+    {
+        int offsetX = (int)(Math.cos(Math.toRadians(ship.direction)) * 26);
+        int offsetY = (int)(Math.sin(Math.toRadians(ship.direction)) * 26);
+        lasers.add(new Laserbeam(ship.x + offsetX, ship.y + offsetY, ship.direction));
     }
 
     private void updatePressedStates()
@@ -147,13 +178,17 @@ public class GameScreen extends JPanel implements KeyListener, MouseMotionListen
                 break;
             case KeyEvent.VK_SPACE:
                 ship.accelerate();
+                fireLaser();
+                break;
+            case KeyEvent.VK_Q:
+                ship.decelerate();
                 break;
             case KeyEvent.VK_ESCAPE:
                 System.exit(0);
                 break;
             case KeyEvent.VK_R:
                 resetGame();
-                break; // not really necessary, but good practice
+                break;
         }
     }
 
@@ -162,6 +197,11 @@ public class GameScreen extends JPanel implements KeyListener, MouseMotionListen
         int shipRadius = 25;
         for (Asteroid a : asteroid)
         {
+            if (a == null)
+            {
+                continue;
+            }
+
             int ax = a.x;
             int ay = a.y;
             int ar = a.size / 2;
@@ -178,24 +218,65 @@ public class GameScreen extends JPanel implements KeyListener, MouseMotionListen
         return false;
     }
 
+    private void handleLaserAsteroidCollisions()
+    {
+        Iterator<Laserbeam> laserIterator = lasers.iterator();
+        while (laserIterator.hasNext())
+        {
+            Laserbeam laser = laserIterator.next();
+            boolean destroyed = false;
+            for (int i = 0; i < asteroid.length; i++)
+            {
+                Asteroid a = asteroid[i];
+                if (a == null)
+                {
+                    continue;
+                }
+
+                int dx = laser.x - a.x;
+                int dy = laser.y - a.y;
+                int radius = (a.size / 2) + 4;
+                if (dx * dx + dy * dy <= radius * radius)
+                {
+                    asteroid[i] = null;
+                    destroyed = true;
+                    break;
+                }
+            }
+
+            if (destroyed)
+            {
+                laserIterator.remove();
+            }
+        }
+    }
+
     private void handleAsteroidCollisions()
     {
         for (int i = 0; i < asteroid.length; i++)
         {
             Asteroid a = asteroid[i];
+            if (a == null)
+            {
+                continue;
+            }
+
             for (int j = i + 1; j < asteroid.length; j++)
             {
                 Asteroid b = asteroid[j];
+                if (b == null)
+                {
+                    continue;
+                }
+
                 int dx = a.x - b.x;
                 int dy = a.y - b.y;
                 int rsum = (a.size / 2) + (b.size / 2);
                 if (dx * dx + dy * dy <= rsum * rsum)
                 {
-                    // reverse directions to separate them
                     a.direction = (a.direction + 180) % 360;
                     b.direction = (b.direction + 180) % 360;
 
-                    // nudge them apart slightly
                     double angle = Math.atan2(dy, dx);
                     int push = 5;
                     a.x += (int)(Math.cos(angle) * push);
@@ -213,7 +294,35 @@ public class GameScreen extends JPanel implements KeyListener, MouseMotionListen
         ship.followMouse(e);
         repaint();
     }
-    
+
+    @Override
+    public void mouseClicked(MouseEvent e)
+    {
+        if (e.getButton() == MouseEvent.BUTTON1)
+        {
+            fireLaser();
+        }
+    }
+
+    @Override
+    public void mousePressed(MouseEvent e)
+    {
+        requestFocusInWindow();
+        if (e.getButton() == MouseEvent.BUTTON1)
+        {
+            fireLaser();
+        }
+    }
+
+    @Override
+    public void mouseReleased(MouseEvent e) {}
+
+    @Override
+    public void mouseEntered(MouseEvent e) {}
+
+    @Override
+    public void mouseExited(MouseEvent e) {}
+
     @Override
     public void keyReleased(KeyEvent e)
     {
@@ -240,7 +349,6 @@ public class GameScreen extends JPanel implements KeyListener, MouseMotionListen
     public static void main(String[] args)
     {
         new GameScreen();
-        System.out.println("Test");
     }
 
     public void resetGame()
@@ -261,6 +369,7 @@ public class GameScreen extends JPanel implements KeyListener, MouseMotionListen
             asteroid[i] = new Asteroid();
         }
 
+        lasers.clear();
         horizontalInputQueue.clear();
         verticalInputQueue.clear();
         updatePressedStates();
@@ -277,7 +386,7 @@ public class GameScreen extends JPanel implements KeyListener, MouseMotionListen
 
     @Override
     public void keyTyped(KeyEvent e) {}
-    
+
     @Override
     public void mouseDragged(MouseEvent e) {}
 }

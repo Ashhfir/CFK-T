@@ -1,7 +1,7 @@
+import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.event.MouseEvent;
-import java.awt.Color;
 
 public class Ship
 {
@@ -20,13 +20,11 @@ public class Ship
     {
         Graphics2D g2 = (Graphics2D) g.create();
         g2.rotate(Math.toRadians(direction), x, y);
-        
+
         g2.setColor(Color.RED);
-        g2.fillOval(x-25, y-25, 50, 50);
-        g2.fillRect(x+20, y-5, 15, 10);
+        g2.fillOval(x - 25, y - 25, 50, 50);
+        g2.fillRect(x + 20, y - 5, 15, 10);
         g2.dispose();
-        
-        // g2.rotate(Math.toRadians(direction), x, y);
     }
 
     public void move(boolean leftPressed, boolean rightPressed, boolean upPressed, boolean downPressed)
@@ -55,6 +53,11 @@ public class Ship
     public void accelerate()
     {
         speed += 3;
+    }
+
+    public void decelerate()
+    {
+        speed = Math.max(3, speed - 3);
     }
 
     public void followMouse(MouseEvent mouse)
